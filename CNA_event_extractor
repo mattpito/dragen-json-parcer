@@ -1,0 +1,22 @@
+zcat filename.cnv.annotations.json.gz \
+  | jq --arg GENE "GUSB" '
+    .positions[]
+    | {
+        chromosome: .chromosome,
+        start:      .position,
+        end:        .svEnd,
+        filters:    .filters,
+        copyNumber: ( .samples[]?.copyNumber ),
+        transcripts: (
+          # Look through each variant, gather transcripts for the gene
+          [ .variants[]?.transcripts[]?
+            | select(.hgnc == $GENE)
+            | .transcript
+          ]
+          # Remove duplicates (if any)
+          | unique
+        )
+      }
+    # Keep only positions where we found at least one matching transcript
+    | select(.transcripts | length > 0)
+  '
